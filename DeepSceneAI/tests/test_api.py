@@ -12,7 +12,7 @@ def test_health_endpoint_reports_ready():
     assert response.json()["status"]=="ok"
 
 def test_analyze_scene_returns_consistent_schema():
-    response=client.post("/analyze_scene",json={"description":"A detective investigates a crime in a dark warehouse","style":"neo-noir"})
+    response=client.post("/analyze_scene",json={"description":"A detective investigates a crime in a warehouse","style":"neo-noir"})
     assert response.status_code==200
     payload=response.json()
     assert payload["genre"]=="thriller"
