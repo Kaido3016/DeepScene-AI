@@ -1,7 +1,7 @@
-# Optional heavyweight dependencies for local image generation.
-# Install a compatible PyTorch/CUDA build from pytorch.org/get-started/locally/.
+# Optional pretrained model inference and local image generation.
+# Install a compatible PyTorch/CUDA build from pytorch.org/get-started/locally/ first.
 torch>=2.2
-diffusers>=0.30
 transformers>=4.40
 accelerate>=0.30
 safetensors>=0.4
+diffusers>=0.30

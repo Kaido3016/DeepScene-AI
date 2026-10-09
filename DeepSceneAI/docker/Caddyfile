@@ -1,0 +1,11 @@
+{$CADDY_DOMAIN} {
+    encode zstd gzip
+    @api path /api/*
+    handle @api {
+        uri strip_prefix /api
+        reverse_proxy deepscene-api-public:8000
+    }
+    handle {
+        reverse_proxy deepscene-ui:8501
+    }
+}

@@ -3,18 +3,71 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        INSTALL_AI_DEPS: ${INSTALL_AI_DEPS:-false}
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     volumes:
       - ../results:/app/results
+    environment:
+      DEEPSCENE_INFERENCE_BACKEND: ${DEEPSCENE_INFERENCE_BACKEND:-rules}
+      DEEPSCENE_MOOD_MODEL: ${DEEPSCENE_MOOD_MODEL:-j-hartmann/emotion-english-distilroberta-base}
+      DEEPSCENE_GENRE_MODEL: ${DEEPSCENE_GENRE_MODEL:-valhalla/distilbart-mnli-12-1}
+      DEEPSCENE_DIALOGUE_MODEL: ${DEEPSCENE_DIALOGUE_MODEL:-google/flan-t5-base}
     restart: unless-stopped
   deepscene-api:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        INSTALL_AI_DEPS: ${INSTALL_AI_DEPS:-false}
     command: ["uvicorn","app:app","--host","0.0.0.0","--port","8000"]
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      DEEPSCENE_CORS_ORIGINS: "http://localhost:8501"
+      DEEPSCENE_CORS_ORIGINS: ${DEEPSCENE_CORS_ORIGINS:-http://localhost:8501}
+      DEEPSCENE_API_KEY: ${DEEPSCENE_API_KEY:-}
+      DEEPSCENE_REQUIRE_API_KEY: ${DEEPSCENE_REQUIRE_API_KEY:-0}
+      DEEPSCENE_INFERENCE_BACKEND: ${DEEPSCENE_INFERENCE_BACKEND:-rules}
+      DEEPSCENE_MOOD_MODEL: ${DEEPSCENE_MOOD_MODEL:-j-hartmann/emotion-english-distilroberta-base}
+      DEEPSCENE_GENRE_MODEL: ${DEEPSCENE_GENRE_MODEL:-valhalla/distilbart-mnli-12-1}
+      DEEPSCENE_DIALOGUE_MODEL: ${DEEPSCENE_DIALOGUE_MODEL:-google/flan-t5-base}
     restart: unless-stopped
+  deepscene-api-public:
+    profiles: ["public"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        INSTALL_AI_DEPS: ${INSTALL_AI_DEPS:-false}
+    command: ["uvicorn","app:app","--host","0.0.0.0","--port","8000"]
+    expose:
+      - "8000"
+    environment:
+      DEEPSCENE_CORS_ORIGINS: ${DEEPSCENE_CORS_ORIGINS:-https://${CADDY_DOMAIN}}
+      DEEPSCENE_API_KEY: ${DEEPSCENE_API_KEY:-}
+      DEEPSCENE_REQUIRE_API_KEY: "1"
+      DEEPSCENE_INFERENCE_BACKEND: ${DEEPSCENE_INFERENCE_BACKEND:-rules}
+      DEEPSCENE_MOOD_MODEL: ${DEEPSCENE_MOOD_MODEL:-j-hartmann/emotion-english-distilroberta-base}
+      DEEPSCENE_GENRE_MODEL: ${DEEPSCENE_GENRE_MODEL:-valhalla/distilbart-mnli-12-1}
+      DEEPSCENE_DIALOGUE_MODEL: ${DEEPSCENE_DIALOGUE_MODEL:-google/flan-t5-base}
+    restart: unless-stopped
+  deepscene-caddy:
+    image: caddy:2-alpine
+    profiles: ["public"]
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?Set CADDY_DOMAIN to a domain you control}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - deepscene-ui
+      - deepscene-api-public
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:
