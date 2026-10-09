@@ -1,138 +1,54 @@
-# DeepScene-AI — Generative AI Scene Creation
+# DeepScene AI
 
+DeepScene is a scene-analysis and image-prompt preparation application. Default scene analysis uses deterministic keyword rules, not trained mood/genre models. Dialogue is template-based. Image generation is an optional local Diffusers integration and is never reported as successful when no image was generated.
 
-> Generative AI application that transforms text descriptions into cinematic scenes using image generation, scene analysis, and dialogue generation.
+## Requirements
 
+- Python 3.10–3.12
+- A virtual environment is recommended.
+- Image generation additionally requires compatible hardware/dependencies, model weights, and acceptance of the model license where applicable.
 
-**Python** · **Stable Diffusion** · **Generative AI** · **Prompt Engineering** · **Local AI**
+## Local setup
 
+From this directory, create a virtual environment, activate it, then run:
 
-## Overview
+    python -m pip install -r requirements.txt
+    python scripts/setup.py
+    streamlit run streamlit_app.py
 
+Run the API in another terminal:
 
-DeepScene-AI explores a multimodal generative workflow for transforming textual scene descriptions into visual and narrative outputs.
+    uvicorn app:app --reload
 
+API endpoints:
+- GET http://127.0.0.1:8000/health
+- POST http://127.0.0.1:8000/analyze_scene
+- Docs: http://127.0.0.1:8000/docs
 
-The application combines:
+Example JSON body:
 
-- Text-to-image generation
+    {"description":"A detective investigates a mysterious crime in a rainy city at night","style":"neo-noir"}
 
-- Scene analysis
+Mood confidence is a normalized heuristic score, not a probability. With no matching keywords, mood is undetermined and confidence is null.
 
-- Dialogue generation
+## Optional image generation
 
-- Prompt engineering
+Install optional dependencies with python -m pip install -r requirements-ml.txt. Set DEEPSCENE_IMAGE_MODEL to a Diffusers-compatible model repository that you can access. The first run may download large weights. The model's default safety checker is not disabled. Missing dependencies or model-loading failures produce an explicit error; no placeholder is saved under the guise of generated artwork.
 
-- Local model execution
+## Docker
 
+From this directory run docker compose -f docker/docker-compose.yml up --build. The UI is exposed on port 8501. The API is bound to localhost on host port 8000 by default. Containers run as a non-root user. Unused Redis and unconfigured Nginx services have been removed.
 
-## Generation Pipeline
+## Tests
 
+Run python -m pytest -q. Tests cover deterministic classification, validation, fallback data loading, preprocessing, and prompt construction. They do not measure real model quality. Use labeled examples and evaluate precision/recall before describing these heuristics as ML performance.
 
-```text
+## Structure
 
-Scene Description
-
-       │
-
-       ▼
-
-Prompt Processing
-
-       │
-
-       ▼
-
-Image Generation
-
-       │
-
-       ▼
-
-Scene Analysis
-
-       │
-
-       ▼
-
-Dialogue Generation
-
-       │
-
-       ▼
-
-Cinematic Scene
-
-```
-
-
-## Key Capabilities
-
-
-### Text-to-Image Generation
-
-Generate cinematic imagery from textual scene descriptions using Stable Diffusion.
-
-
-### Scene Analysis
-
-Analyze generated scenes to derive additional contextual information.
-
-
-### Dialogue Generation
-
-Generate dialogue based on scene context.
-
-
-### Local Deployment
-
-The project supports local execution of the generative workflow.
-
-
-## Prompt Engineering
-
-
-The system explores structured prompts for controlling:
-
-- Scene composition
-
-- Visual style
-
-- Characters
-
-- Environment
-
-- Cinematic attributes
-
-
-## Technology Stack
-
-
-- Python
-
-- Stable Diffusion
-
-- Generative AI
-
-- Prompt Engineering
-
-- Local inference
-
-
-## Engineering Focus
-
-
-**Generative AI + Model Integration + Prompt Engineering + Multimodal Workflow Design**
-
-
-## Limitations
-
-
-Image generation quality and inference performance depend on the selected model, hardware, and generation parameters.
-
-
-## Disclaimer
-
-
-This project is a technical exploration of generative AI and is not intended to represent professional filmmaking software.
-
+- streamlit_app.py: UI
+- app.py: FastAPI app
+- src/train.py: deterministic scene/mood and dialogue helpers
+- src/data_loader.py: data loading and genre rules
+- src/preprocess.py: text cleaning and extraction
+- src/utils/io_utils.py: optional image generation and JSON export
+- requirements-ml.txt: optional heavyweight image-generation dependencies

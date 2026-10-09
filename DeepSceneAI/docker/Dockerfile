@@ -1,28 +1,10 @@
-# Use official PyTorch image (includes CUDA + Python)
-FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
-
-# Set working directory
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
-
-# System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    wget \
-    curl \
-    vim \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy project files
-COPY requirements.txt .
-COPY src ./src
-COPY data ./data
-COPY notebooks ./notebooks
-
-# Install Python dependencies
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Expose Jupyter notebook port
-EXPOSE 8888
-
-# Start Jupyter notebook by default
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+COPY . .
+RUN mkdir -p results/images results/exports results/logs && useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+EXPOSE 8501 8000
+CMD ["streamlit","run","streamlit_app.py","--server.address=0.0.0.0","--server.port=8501","--server.headless=true"]

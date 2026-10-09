@@ -1,46 +1,20 @@
-docker_compose_content = '''
-version: '3.8'
-
 services:
-  deepscene-app:
-    build: .
+  deepscene-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
-      - "8501:8501"  # Streamlit
-      - "8000:8000"  # FastAPI
+      - "8501:8501"
     volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./results:/app/results
+      - ../results:/app/results
+    restart: unless-stopped
+  deepscene-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["uvicorn","app:app","--host","0.0.0.0","--port","8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
     environment:
-      - PYTHONPATH=/app
-      - CUDA_VISIBLE_DEVICES=0
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+      DEEPSCENE_CORS_ORIGINS: "http://localhost:8501"
     restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - deepscene-app
-    restart: unless-stopped
-
-volumes:
-  models_cache:
-  results_data:
-'''
