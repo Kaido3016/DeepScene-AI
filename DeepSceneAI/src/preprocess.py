@@ -5,7 +5,7 @@ from typing import List
 try: import spacy
 except ImportError: spacy = None
 _SPACE_RE = re.compile(r"\s+")
-_SETTING_RE = re.compile(r"\b(?:in|at|inside|outside|near|on|within)\s+(?:a|an|the)\s+([^,.!?;]+?(?:warehouse|room|house|building|street|park|forest|beach|office|school|restaurant|bar|club|studio|stage|theater|theatre|station|coffee shop|city|village))\b", re.I)
+_SETTING_RE = re.compile(r"\b(?:in|at|inside|outside|near|on|within)\s+(?:a|an|the)\s+([^,.!?;]+)", re.I)
 _ROLE_PATTERNS = {"Detective":r"\bdetective\b","Dancer":r"\bdancers?\b","Man":r"\bman\b","Woman":r"\bwoman\b","Person":r"\bperson\b"}
 class TextPreprocessor:
     def __init__(self, use_spacy: bool = True):
