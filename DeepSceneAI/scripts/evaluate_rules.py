@@ -1,6 +1,7 @@
-"""Evaluate the rule-based scene classifiers on a small labeled fixture set."""
+"""Evaluate configured scene classifiers on a hand-labeled JSON dataset."""
 from __future__ import annotations
-import json
+import argparse, json
+from collections import defaultdict
 from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[1]
@@ -8,19 +9,32 @@ if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 from src.data_loader import SceneDataLoader
 from src.train import DeepSceneModels
 
+def metrics(rows: list[tuple[str,str]]) -> dict[str,float]:
+    labels=sorted({expected for expected,_ in rows}|{actual for _,actual in rows})
+    result={}
+    for label in labels:
+        tp=sum(expected==label and actual==label for expected,actual in rows)
+        fp=sum(expected!=label and actual==label for expected,actual in rows)
+        fn=sum(expected==label and actual!=label for expected,actual in rows)
+        precision=tp/(tp+fp) if tp+fp else 0.0
+        recall=tp/(tp+fn) if tp+fn else 0.0
+        result[label]=2*precision*recall/(precision+recall) if precision+recall else 0.0
+    return {"accuracy":sum(a==b for a,b in rows)/len(rows),"macro_f1":sum(result.values())/len(result)}
 def main() -> None:
-    cases=json.loads((ROOT/"data"/"evaluation_scenes.json").read_text(encoding="utf-8"))
-    genres=SceneDataLoader(ROOT/"data"); moods=DeepSceneModels()
-    genre_correct=mood_correct=0
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--dataset",default=str(ROOT/"data"/"evaluation_scenes.json"))
+    args=parser.parse_args()
+    cases=json.loads(Path(args.dataset).read_text(encoding="utf-8"))
+    if not cases: raise SystemExit("Evaluation dataset is empty.")
+    loader=SceneDataLoader(ROOT/"data"); models=DeepSceneModels()
+    genre_rows=[]; mood_rows=[]
     for case in cases:
-        actual_genre=genres.classify_scene_genre(case["description"])
-        actual_mood=moods.classify_scene_mood(case["description"])["mood"]
-        genre_correct += actual_genre == case["genre"]
-        mood_correct += actual_mood == case["mood"]
-        print(f'{case["id"]}: genre={actual_genre} (expected {case["genre"]}); mood={actual_mood} (expected {case["mood"]})')
-    n=len(cases)
-    if not n: raise SystemExit("Evaluation fixture set is empty.")
-    print(f"Genre accuracy: {genre_correct}/{n} = {genre_correct/n:.1%}")
-    print(f"Mood accuracy:  {mood_correct}/{n} = {mood_correct/n:.1%}")
-    print("Small hand-labeled smoke-test set only; these figures are not production-quality benchmarks.")
+        genre=loader.classify_scene_genre(case["description"])
+        mood=models.classify_scene_mood(case["description"])["mood"]
+        genre_rows.append((case["genre"],genre)); mood_rows.append((case["mood"],mood))
+    print(f"Dataset: {args.dataset} ({len(cases)} labeled examples)")
+    print(f"Backend: genre={loader.backend}, mood={models.backend}")
+    print(f"Genre accuracy={metrics(genre_rows)['accuracy']:.1%}; macro-F1={metrics(genre_rows)['macro_f1']:.3f}")
+    print(f"Mood accuracy={metrics(mood_rows)['accuracy']:.1%}; macro-F1={metrics(mood_rows)['macro_f1']:.3f}")
+    print("These are smoke-test metrics for a small hand-labeled set, not independent or production-quality benchmarks.")
 if __name__=="__main__": main()

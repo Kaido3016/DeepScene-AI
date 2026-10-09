@@ -1,9 +1,128 @@
 [
-  {"id":"action-1","description":"A fierce battle with explosions and a high-speed chase","genre":"action","mood":"tense"},
-  {"id":"comedy-1","description":"A funny joke makes everyone laugh","genre":"comedy","mood":"happy"},
-  {"id":"drama-1","description":"A family conversation about grief and loss","genre":"drama","mood":"sad"},
-  {"id":"horror-1","description":"A ghost and a frightening nightmare in a dark house","genre":"horror","mood":"fearful"},
-  {"id":"romance-1","description":"A couple shares love and a romantic kiss","genre":"romance","mood":"romantic"},
-  {"id":"thriller-1","description":"A detective uncovers a secret conspiracy full of suspense","genre":"thriller","mood":"mysterious"},
-  {"id":"unknown-1","description":"A person walks across a sunny field","genre":"general","mood":"undetermined"}
+  {
+    "id": "action-1",
+    "description": "A fierce battle erupts with explosions and a high-speed chase.",
+    "genre": "action",
+    "mood": "tense"
+  },
+  {
+    "id": "action-2",
+    "description": "An agent fights armed attackers and escapes in a car chase.",
+    "genre": "action",
+    "mood": "energetic"
+  },
+  {
+    "id": "action-3",
+    "description": "A rescue team races through combat to save a trapped pilot.",
+    "genre": "action",
+    "mood": "tense"
+  },
+  {
+    "id": "comedy-1",
+    "description": "A silly joke makes the whole audience laugh.",
+    "genre": "comedy",
+    "mood": "happy"
+  },
+  {
+    "id": "comedy-2",
+    "description": "Two friends make funny mistakes at a birthday party.",
+    "genre": "comedy",
+    "mood": "happy"
+  },
+  {
+    "id": "comedy-3",
+    "description": "A humorous misunderstanding turns dinner into a ridiculous mess.",
+    "genre": "comedy",
+    "mood": "happy"
+  },
+  {
+    "id": "drama-1",
+    "description": "A family argues about grief and the loss of their home.",
+    "genre": "drama",
+    "mood": "sad"
+  },
+  {
+    "id": "drama-2",
+    "description": "A lonely father cries while reading a letter from his daughter.",
+    "genre": "drama",
+    "mood": "sad"
+  },
+  {
+    "id": "drama-3",
+    "description": "A difficult emotional conversation forces siblings to confront old wounds.",
+    "genre": "drama",
+    "mood": "tense"
+  },
+  {
+    "id": "horror-1",
+    "description": "A ghost appears in a dark house during a frightening nightmare.",
+    "genre": "horror",
+    "mood": "fearful"
+  },
+  {
+    "id": "horror-2",
+    "description": "A terrified camper hears a monster scratching outside the cabin.",
+    "genre": "horror",
+    "mood": "fearful"
+  },
+  {
+    "id": "horror-3",
+    "description": "A cursed basement fills with dread as a shadow moves behind the door.",
+    "genre": "horror",
+    "mood": "fearful"
+  },
+  {
+    "id": "romance-1",
+    "description": "A couple shares a romantic kiss beneath the stars.",
+    "genre": "romance",
+    "mood": "romantic"
+  },
+  {
+    "id": "romance-2",
+    "description": "Two lovers plan a quiet wedding and confess their affection.",
+    "genre": "romance",
+    "mood": "romantic"
+  },
+  {
+    "id": "romance-3",
+    "description": "A first date becomes intimate as the pair talk about love.",
+    "genre": "romance",
+    "mood": "romantic"
+  },
+  {
+    "id": "thriller-1",
+    "description": "A detective uncovers a secret conspiracy full of suspense.",
+    "genre": "thriller",
+    "mood": "mysterious"
+  },
+  {
+    "id": "thriller-2",
+    "description": "A nervous journalist follows an unknown source through a tense investigation.",
+    "genre": "thriller",
+    "mood": "tense"
+  },
+  {
+    "id": "thriller-3",
+    "description": "A spy discovers a hidden clue and realizes someone is watching.",
+    "genre": "thriller",
+    "mood": "mysterious"
+  },
+  {
+    "id": "general-1",
+    "description": "A person walks across a sunny field on an ordinary afternoon.",
+    "genre": "general",
+    "mood": "undetermined"
+  },
+  {
+    "id": "general-2",
+    "description": "A child arranges colored pencils on a desk before drawing.",
+    "genre": "general",
+    "mood": "undetermined"
+  },
+  {
+    "id": "general-3",
+    "description": "A baker places fresh bread on a table in the morning.",
+    "genre": "general",
+    "mood": "undetermined"
+  }
 ]

@@ -10,7 +10,7 @@ from src.train import DeepSceneModels
 def test_models_initialize_without_fake_model_objects():
     models=DeepSceneModels(device="cpu").initialize_all_models()
     assert models.device=="cpu"
-    assert models.models=={"mood_classifier":"rules","dialogue_generator":"templates"}
+    assert models.models=={"mood_classifier":"rules","dialogue_generator":"rules"}
 
 @pytest.mark.parametrize(("text","expected"),[
     ("A joyful party with dancing and laughter","happy"),
@@ -62,3 +62,21 @@ def test_prompt_generation_and_dialogue():
 def test_image_generation_validates_before_model_load(tmp_path):
     from src.utils.io_utils import generate_ai_image_free
     with pytest.raises(ValueError): generate_ai_image_free(" ","scene",str(tmp_path))
+
+def test_transformer_mood_uses_model_scores(monkeypatch):
+    import src.train as train
+    monkeypatch.setattr(train,"get_pipeline",lambda kind: lambda *a,**k:[{"label":"sadness","score":0.91},{"label":"joy","score":0.09}])
+    result=DeepSceneModels(backend="transformers").classify_scene_mood("A quiet scene")
+    assert result["mood"]=="sad" and result["confidence"]==0.91
+    assert result["method"]=="transformers_emotion_classifier"
+
+def test_transformer_dialogue_uses_text_generation(monkeypatch):
+    import src.train as train
+    monkeypatch.setattr(train,"get_pipeline",lambda kind: lambda *a,**k:[{"generated_text":"We should leave before sunrise."}])
+    assert DeepSceneModels(backend="transformers").generate_dialogue("A dangerous forest")=="We should leave before sunrise."
+
+def test_transformer_genre_uses_zero_shot_scores(monkeypatch,tmp_path):
+    import src.data_loader as loader_module
+    monkeypatch.setattr(loader_module,"get_pipeline",lambda kind: lambda *a,**k:{"labels":["horror","romance"],"scores":[0.87,0.13]})
+    result=SceneDataLoader(tmp_path,backend="transformers").classify_scene_genre_details("A dark scene")
+    assert result["genre"]=="horror" and result["method"]=="transformers_zero_shot"
