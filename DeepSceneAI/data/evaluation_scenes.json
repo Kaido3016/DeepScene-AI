@@ -1,0 +1,9 @@
+[
+  {"id":"action-1","description":"A fierce battle with explosions and a high-speed chase","genre":"action","mood":"tense"},
+  {"id":"comedy-1","description":"A funny joke makes everyone laugh","genre":"comedy","mood":"happy"},
+  {"id":"drama-1","description":"A family conversation about grief and loss","genre":"drama","mood":"sad"},
+  {"id":"horror-1","description":"A ghost and a frightening nightmare in a dark house","genre":"horror","mood":"fearful"},
+  {"id":"romance-1","description":"A couple shares love and a romantic kiss","genre":"romance","mood":"romantic"},
+  {"id":"thriller-1","description":"A detective uncovers a secret conspiracy full of suspense","genre":"thriller","mood":"mysterious"},
+  {"id":"unknown-1","description":"A person walks across a sunny field","genre":"general","mood":"undetermined"}
+]
