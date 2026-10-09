@@ -1,103 +1,57 @@
-# src/data_loader.py
-import json
+"""Load scene data and classify genres deterministically."""
+from __future__ import annotations
+import json, logging, re
 from pathlib import Path
-import random
-from typing import Dict, List
-
-
+from typing import Any
+logger = logging.getLogger(__name__)
+_WORD_RE = re.compile(r"[a-z0-9']+")
+DEFAULT_TEMPLATES = {
+"action":{"keywords":["fight","battle","chase","explosion","combat"],"style":"dynamic composition, dramatic lighting"},
+"comedy":{"keywords":["funny","laugh","joke","humorous","silly"],"style":"bright colors, expressive framing"},
+"drama":{"keywords":["emotional","grief","conflict","family","loss"],"style":"naturalistic lighting, intimate framing"},
+"horror":{"keywords":["scary","frightening","ghost","monster","nightmare"],"style":"low-key lighting, atmospheric shadows"},
+"romance":{"keywords":["love","romantic","couple","relationship","kiss","date"],"style":"soft lighting, intimate composition"},
+"thriller":{"keywords":["suspense","mystery","tense","conspiracy","detective"],"style":"high contrast, suspenseful framing"},
+"general":{"keywords":[],"style":"cinematic, professional photography"}}
 class SceneDataLoader:
-    """
-    Enhanced scene data loader with improved genre classification
-    """
-
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: str | Path = "data"):
         self.data_dir = Path(data_dir)
-        self.templates = self._load_json("scene_templates.json")
-        self.samples = self._load_json("sample_scenes.json")
-
-        # Enhanced keyword mapping for better classification
+        self.templates = self._load_json("scene_templates.json", DEFAULT_TEMPLATES)
+        self.samples = self._load_json("sample_scenes.json", {})
+        if not isinstance(self.templates, dict):
+            logger.warning("Scene templates must be a JSON object; using defaults.")
+            self.templates = DEFAULT_TEMPLATES.copy()
         self.genre_keywords = self._build_enhanced_keywords()
-
-    def _load_json(self, filename: str):
-        file_path = self.data_dir / filename
-        if not file_path.exists():
-            print(f"⚠️ File not found: {file_path}, using empty fallback")
-            return {}
-        with open(file_path, "r") as f:
-            return json.load(f)
-
-    def _build_enhanced_keywords(self) -> Dict[str, List[str]]:
-        """Build enhanced keyword mapping for better genre detection"""
-        enhanced_keywords = {}
-
+    def _load_json(self, filename: str, fallback: Any) -> Any:
+        path = self.data_dir / filename
+        if not path.is_file():
+            logger.warning("Optional data file missing: %s", path)
+            return fallback.copy() if isinstance(fallback, dict) else fallback
+        try:
+            with path.open(encoding="utf-8") as file: return json.load(file)
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Could not load %s: %s", path, exc)
+            return fallback.copy() if isinstance(fallback, dict) else fallback
+    def _build_enhanced_keywords(self) -> dict[str, list[str]]:
+        result = {}
         for genre, values in self.templates.items():
-            base_keywords = values.get("keywords", [])
-            enhanced_keywords[genre] = base_keywords
-
-            # Add common variations and related words
-            if genre == "comedy":
-                enhanced_keywords[genre].extend(["funny", "laugh", "joke", "humorous", "comic", "silly", "hilarious"])
-            elif genre == "action":
-                enhanced_keywords[genre].extend(["fight", "battle", "chase", "explosion", "combat", "thrilling"])
-            elif genre == "romance":
-                enhanced_keywords[genre].extend(["love", "romantic", "couple", "relationship", "kiss", "date"])
-            elif genre == "horror":
-                enhanced_keywords[genre].extend(["scary", "frightening", "terrifying", "ghost", "monster", "dark"])
-            elif genre == "drama":
-                enhanced_keywords[genre].extend(["emotional", "serious", "intense", "relationship", "conflict"])
-            elif genre == "thriller":
-                enhanced_keywords[genre].extend(["suspense", "mystery", "tense", "suspenseful", "conspiracy"])
-
-        return enhanced_keywords
-
-    def get_templates(self):
-        return self.templates
-
-    def get_samples(self):
-        return self.samples
-
+            base = values.get("keywords", []) if isinstance(values, dict) else []
+            additions = DEFAULT_TEMPLATES.get(genre, {}).get("keywords", [])
+            result[genre] = sorted({str(k).casefold() for k in [*base,*additions] if str(k).strip()})
+        result.setdefault("general", [])
+        return result
+    def get_templates(self) -> dict[str, Any]: return self.templates
+    def get_samples(self) -> Any: return self.samples
     def classify_scene_genre(self, description: str) -> str:
-        """
-        Enhanced genre classification with better keyword matching
-        """
-        description_lower = description.lower()
-
-        # Score each genre based on keyword matches
-        genre_scores = {}
-
-        for genre, keywords in self.genre_keywords.items():
-            score = 0
-            for keyword in keywords:
-                if keyword in description_lower:
-                    score += 1
-                    # Bonus for exact matches at word boundaries
-                    if f" {keyword} " in f" {description_lower} ":
-                        score += 2
-
-            genre_scores[genre] = score
-
-        # Get genre with highest score
-        best_genre = max(genre_scores.items(), key=lambda x: x[1])
-
-        # If no strong match, use context-based fallback
-        if best_genre[1] == 0:
-            return self._context_based_fallback(description_lower)
-
-        return best_genre[0]
-
-    def _context_based_fallback(self, description: str) -> str:
-        """Fallback genre classification based on context"""
-        dancing_words = ["dancing", "dance", "party", "music", "celebrat"]
-        happy_words = ["happy", "joy", "smile", "laugh", "fun"]
-        sad_words = ["sad", "cry", "tear", "depressed", "lonely"]
-
-        if any(word in description for word in dancing_words + happy_words):
-            return "comedy"  # or "musical" if you add it
-        elif any(word in description for word in sad_words):
-            return "drama"
-        else:
-            return random.choice(list(self.templates.keys()))
-
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError("description must be a non-empty string")
+        lowered = description.casefold()
+        tokens = set(_WORD_RE.findall(lowered))
+        scores = {genre:sum(1 for k in keys if k in tokens or (len(k)>4 and k in lowered))
+                  for genre,keys in self.genre_keywords.items()}
+        best = max(scores.values(), default=0)
+        if best == 0: return "general"
+        return sorted(g for g,score in scores.items() if score == best)[0]
     def get_style_prompt(self, genre: str) -> str:
-        """Returns the style description for the given genre"""
-        return self.templates.get(genre, {}).get("style", "cinematic, professional photography")
+        template = self.templates.get(genre,{}) if isinstance(self.templates,dict) else {}
+        return str(template.get("style",DEFAULT_TEMPLATES["general"]["style"]))

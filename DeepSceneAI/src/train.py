@@ -1,108 +1,60 @@
-# src/train.py
-import torch
-import random
-from typing import Dict
-
-
+"""Scene analysis primitives: deterministic rules, not a trained model."""
+from __future__ import annotations
+import re
+from typing import Any
+MOOD_KEYWORDS: dict[str, tuple[str, ...]] = {
+"happy": ("happy","joy","celebrat","dance","laugh","smile","fun","party"),
+"sad": ("sad","cry","tear","depressed","lonely","heartbreak","loss","grief"),
+"tense": ("tense","suspense","nervous","anxious","worried","stress","chase","fight"),
+"fearful": ("fear","scared","afraid","terrified","horror","frighten","nightmare"),
+"romantic": ("romantic","love","passion","intimate","affection","kiss","date"),
+"energetic": ("energy","exciting","dynamic","action","fast","intense","adventure"),
+"mysterious": ("mystery","secret","unknown","puzzle","curious","enigma","detective"),
+"peaceful": ("calm","peace","quiet","serene","tranquil","relax","gentle")}
+_WORD_RE = re.compile(r"[a-z0-9']+")
 class DeepSceneModels:
-    """
-    Enhanced models with better mood classification
-    """
-
-    def __init__(self, device=None):
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.models = {}
-
-        # Enhanced mood mapping
-        self.mood_keywords = {
-            "happy": ["happy", "joy", "celebrat", "dancing", "laugh", "smile", "fun", "party"],
-            "sad": ["sad", "cry", "tear", "depressed", "lonely", "heartbreak", "loss"],
-            "tense": ["tense", "suspense", "nervous", "anxious", "worried", "stress"],
-            "fearful": ["fear", "scared", "afraid", "terrified", "horror", "frighten"],
-            "romantic": ["romantic", "love", "passion", "intimate", "affection", "kiss"],
-            "energetic": ["energy", "exciting", "dynamic", "action", "fast", "intense", "dancing"],
-            "mysterious": ["mystery", "secret", "unknown", "puzzle", "curious", "enigma"],
-            "peaceful": ["calm", "peace", "quiet", "serene", "tranquil", "relax"]
-        }
-
-    def initialize_all_models(self):
-        """Initialize model placeholders"""
-        self.models["mood_classifier"] = "stub_mood_classifier"
-        self.models["dialogue_generator"] = "stub_dialogue_generator"
-        self.models["tts"] = "stub_text_to_speech"
-        self.models["image_gen"] = "stub_image_gen"
+    """Lightweight scene helpers. Heavy model integrations are not auto-loaded."""
+    def __init__(self, device: str | None = None):
+        self.device = device or "cpu"
+        self.models: dict[str, Any] = {}
+        self.mood_keywords = MOOD_KEYWORDS
+    def initialize_all_models(self) -> "DeepSceneModels":
+        self.models = {"mood_classifier": "rules", "dialogue_generator": "templates"}
         return self
-
-    def classify_scene_mood(self, description: str) -> Dict[str, any]:
-        """
-        Enhanced mood classification based on keywords and context
-        """
-        description_lower = description.lower()
-
-        # Score each mood based on keyword matches
-        mood_scores = {}
-
-        for mood, keywords in self.mood_keywords.items():
-            score = 0
-            for keyword in keywords:
-                if keyword in description_lower:
-                    score += 1
-                    # Bonus for exact matches
-                    if f" {keyword} " in f" {description_lower} ":
-                        score += 2
-
-            mood_scores[mood] = score
-
-        # Get mood with highest score
-        best_mood = max(mood_scores.items(), key=lambda x: x[1])
-
-        # If no strong match, use context-based fallback
-        if best_mood[1] == 0:
-            detected_mood = self._context_based_mood(description_lower)
-            confidence = 0.6
-        else:
-            detected_mood = best_mood[0]
-            confidence = min(0.95, 0.7 + (best_mood[1] * 0.1))
-
-        return {"mood": detected_mood, "confidence": round(confidence, 2)}
-
-    def _context_based_mood(self, description: str) -> str:
-        """Context-based mood fallback"""
-        if any(word in description for word in ["dancing", "dance", "party", "celebrat"]):
-            return "happy"
-        elif any(word in description for word in ["fight", "battle", "chase"]):
-            return "tense"
-        elif any(word in description for word in ["love", "romantic", "kiss"]):
-            return "romantic"
-        else:
-            return random.choice(["happy", "energetic", "peaceful"])
-
+    @staticmethod
+    def _tokens(text: str) -> set[str]:
+        return set(_WORD_RE.findall(text.casefold()))
+    def classify_scene_mood(self, description: str) -> dict[str, Any]:
+        """Confidence is a normalized heuristic score, not a calibrated probability."""
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError("description must be a non-empty string")
+        tokens = self._tokens(description)
+        scores = {mood: sum(1 for k in keys if k in tokens or
+                  (k.endswith(("ing","ed","at")) and k in description.casefold()))
+                  for mood, keys in self.mood_keywords.items()}
+        best = max(scores.values(), default=0)
+        if not best:
+            return {"mood":"undetermined","confidence":None,"method":"keyword_rules","evidence":[]}
+        winners = sorted(m for m, score in scores.items() if score == best)
+        mood = winners[0]
+        evidence = [k for k in self.mood_keywords[mood] if k in tokens or
+                    (k.endswith(("ing","ed","at")) and k in description.casefold())]
+        return {"mood":mood,"confidence":round(best/max(sum(scores.values()),1),3),
+                "confidence_type":"heuristic_score_not_probability","method":"keyword_rules",
+                "evidence":evidence,"ambiguous":len(winners)>1}
     def generate_dialogue(self, description: str) -> str:
-        """Enhanced dialogue generation"""
-        # Simple template-based dialogue generation
-        templates = [
-            f"\"This is quite a situation,\" one character remarked, looking around.",
-            f"\"I can't believe we're here,\" said another, shaking their head.",
-            f"\"What should we do now?\" someone asked nervously.",
-            f"\"This reminds me of that time...\" a voice trailed off.",
-            f"\"Let's make the most of this moment!\" someone exclaimed cheerfully."
-        ]
-
-        # Context-aware selection
-        description_lower = description.lower()
-        if "dancing" in description_lower or "dance" in description_lower:
-            return "\"I love this song! Let's dance!\" they shouted over the music."
-        elif "fight" in description_lower:
-            return "\"You'll never get away with this!\" the hero declared."
-        elif "love" in description_lower:
-            return "\"I've never felt this way about anyone before,\" they whispered."
-
-        return random.choice(templates)
-
-    def generate_tts(self, text: str):
-        """Stub for TTS"""
-        return f"[Audio for text: '{text[:50]}...']"
-
-    def generate_image(self, prompt: str):
-        """Stub for image generation"""
-        return f"[Generated image for prompt: '{prompt[:60]}...']"
+        mood = self.classify_scene_mood(description)["mood"]
+        lines = {"happy":'"Come on, let’s enjoy this moment!"',
+        "sad":'"I wish things had turned out differently," they said quietly.',
+        "tense":'"Stay close, and don’t make a sound," they whispered.',
+        "fearful":'"Did you hear that? We need to leave."',
+        "romantic":'"There’s nowhere else I’d rather be," they said softly.',
+        "energetic":'"Move! We don’t have a second to lose!"',
+        "mysterious":'"Something about this place doesn’t add up."',
+        "peaceful":'"Let’s stay here a little longer."',
+        "undetermined":'"What do you think we should do next?"'}
+        return lines[mood]
+    def generate_tts(self, text: str) -> None:
+        raise NotImplementedError("Text-to-speech is not configured; no audio was generated.")
+    def generate_image(self, prompt: str) -> None:
+        raise NotImplementedError("Use generate_ai_image_free() with optional image dependencies.")
