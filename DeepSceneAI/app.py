@@ -1,9 +1,9 @@
 """FastAPI application for DeepScene scene analysis."""
 from __future__ import annotations
-import logging, os, sys
+import hmac, logging, os, sys
 from pathlib import Path
 from typing import Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 ROOT=Path(__file__).resolve().parent
@@ -15,7 +15,7 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL","INFO"))
 logger=logging.getLogger(__name__)
 app=FastAPI(title="DeepScene API",version="1.0.0")
 origins=[v.strip() for v in os.getenv("DEEPSCENE_CORS_ORIGINS","http://localhost:8501").split(",") if v.strip()]
-app.add_middleware(CORSMiddleware,allow_origins=origins,allow_credentials=False,allow_methods=["GET","POST"],allow_headers=["Content-Type","Authorization"])
+app.add_middleware(CORSMiddleware,allow_origins=origins,allow_credentials=False,allow_methods=["GET","POST"],allow_headers=["Content-Type","Authorization","X-API-Key"])
 class SceneRequest(BaseModel):
     description: str=Field(min_length=3,max_length=5000)
     style: str=Field(default="cinematic",max_length=200)
@@ -34,7 +34,10 @@ app.state.ready=True
 def health() -> dict[str,Any]:
     return {"status":"ok" if app.state.ready else "not_ready","version":app.version}
 @app.post("/analyze_scene",response_model=SceneAnalysis)
-def analyze_scene(request: SceneRequest) -> SceneAnalysis:
+def analyze_scene(request: SceneRequest, x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> SceneAnalysis:
+    expected_key=os.getenv("DEEPSCENE_API_KEY")
+    if expected_key and (not x_api_key or not hmac.compare_digest(x_api_key,expected_key)):
+        raise HTTPException(status_code=401,detail="Invalid or missing API key.")
     try:
         description=preprocessor.clean_text(request.description)
         if not description: raise HTTPException(status_code=422,detail="description must not be blank")
